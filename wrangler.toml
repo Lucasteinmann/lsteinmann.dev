@@ -1,0 +1,22 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "lucastoneman-dev"
+compatibility_date = "2024-11-08"
+
+pages_build_output_dir = ".open-next/worker"
+
+# Environment variables for Cloudflare
+[vars]
+# Add your Supabase environment variables here
+# NEXT_PUBLIC_SUPABASE_URL = "your-supabase-url"
+# NEXT_PUBLIC_SUPABASE_ANON_KEY = "your-supabase-anon-key"
+
+# Secrets (use wrangler secret put to add these)
+# - SUPABASE_SERVICE_ROLE_KEY
+
+[[kv_namespaces]]
+binding = "ASSETS"
+id = "preview_id" # Replace with your KV namespace ID for preview
+preview_id = "preview_id"
+
+[observability]
+enabled = true
