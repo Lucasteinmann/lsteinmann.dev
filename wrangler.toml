@@ -13,10 +13,12 @@ pages_build_output_dir = ".open-next/worker"
 # Secrets (use wrangler secret put to add these)
 # - SUPABASE_SERVICE_ROLE_KEY
 
-[[kv_namespaces]]
-binding = "ASSETS"
-id = "preview_id" # Replace with your KV namespace ID for preview
-preview_id = "preview_id"
+# Note: KV namespaces are optional for basic Next.js deployments
+# Uncomment and configure if you need KV storage
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your_kv_namespace_id"
+# preview_id = "your_preview_kv_namespace_id"
 
 [observability]
 enabled = true
