@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Window from './Window';
+import { useTheme } from './ThemeContext';
 
 interface NotesAppProps {
   onClose: () => void;
@@ -16,6 +17,7 @@ interface Note {
 }
 
 export default function NotesApp({ onClose }: NotesAppProps) {
+  const { theme } = useTheme();
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -117,11 +119,14 @@ export default function NotesApp({ onClose }: NotesAppProps) {
     <Window title="~/notes" onClose={onClose}>
       <div className="flex h-full">
         {/* Sidebar */}
-        <div className="w-64 bg-[#161b22] border-r border-gray-700 flex flex-col">
-          <div className="p-3 border-b border-gray-700">
+        <div className="w-64 border-r flex flex-col" style={{ backgroundColor: theme.black, borderColor: theme.brightBlack }}>
+          <div className="p-3 border-b" style={{ borderColor: theme.brightBlack }}>
             <button
               onClick={handleNewNote}
-              className="w-full bg-[#238636] hover:bg-[#2ea043] text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+              className="w-full px-3 py-2 rounded text-sm font-medium transition-opacity"
+              style={{ backgroundColor: theme.green, color: theme.background }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
             >
               + New Note
             </button>
@@ -129,9 +134,9 @@ export default function NotesApp({ onClose }: NotesAppProps) {
 
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
+              <div className="p-4 text-center text-sm" style={{ color: theme.brightBlack }}>Loading...</div>
             ) : notes.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 text-sm">
+              <div className="p-4 text-center text-sm" style={{ color: theme.brightBlack }}>
                 No notes yet
               </div>
             ) : (
@@ -140,17 +145,29 @@ export default function NotesApp({ onClose }: NotesAppProps) {
                   <div
                     key={note.id}
                     onClick={() => handleSelectNote(note)}
-                    className={`p-3 border-b border-gray-800 cursor-pointer hover:bg-[#1c2128] transition-colors ${
-                      selectedNote?.id === note.id && !isCreating ? 'bg-[#1c2128]' : ''
-                    }`}
+                    className="p-3 border-b cursor-pointer transition-colors"
+                    style={{ 
+                      borderColor: theme.brightBlack,
+                      backgroundColor: selectedNote?.id === note.id && !isCreating ? theme.brightBlack : 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedNote?.id !== note.id || isCreating) {
+                        e.currentTarget.style.backgroundColor = theme.brightBlack || '';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedNote?.id !== note.id || isCreating) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
                   >
-                    <h3 className="text-white font-medium text-sm truncate mb-1">
+                    <h3 className="font-medium text-sm truncate mb-1" style={{ color: theme.foreground }}>
                       {note.title}
                     </h3>
-                    <p className="text-gray-400 text-xs truncate">
+                    <p className="text-xs truncate" style={{ color: theme.cyan }}>
                       {note.content || 'Empty note'}
                     </p>
-                    <p className="text-gray-600 text-xs mt-1">
+                    <p className="text-xs mt-1" style={{ color: theme.yellow, opacity: 0.7 }}>
                       {new Date(note.updated_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -165,33 +182,45 @@ export default function NotesApp({ onClose }: NotesAppProps) {
           {isCreating || selectedNote ? (
             <>
               {/* Editor Header */}
-              <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+              <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: theme.brightBlack }}>
                 <input
                   type="text"
-                  placeholder="Untitled"
+                  placeholder="Note title..."
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="text-2xl font-bold bg-transparent text-white border-none outline-none flex-1"
-                  autoFocus={isCreating}
+                  className="flex-1 text-lg font-medium border-none outline-none bg-transparent"
+                  style={{ color: theme.foreground }}
+                  autoFocus
                 />
                 <div className="flex gap-2 ml-4">
+                  {!isCreating && (
+                    <button
+                      onClick={handleCancel}
+                      className="px-3 py-1.5 text-sm rounded transition-opacity"
+                      style={{ backgroundColor: theme.brightBlack, color: theme.foreground }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      Cancel
+                    </button>
+                  )}
                   {selectedNote && (
                     <button
                       onClick={() => handleDeleteNote(selectedNote.id)}
-                      className="px-3 py-1.5 bg-[#da3633] hover:bg-[#f85149] text-white text-sm rounded transition-colors"
+                      className="px-3 py-1.5 text-sm rounded transition-opacity"
+                      style={{ backgroundColor: theme.red, color: theme.foreground }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                     >
                       Delete
                     </button>
                   )}
                   <button
-                    onClick={handleCancel}
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
                     onClick={isCreating ? handleCreateNote : handleUpdateNote}
-                    className="px-3 py-1.5 bg-[#238636] hover:bg-[#2ea043] text-white text-sm rounded transition-colors"
+                    className="px-3 py-1.5 text-sm rounded transition-opacity"
+                    style={{ backgroundColor: theme.green, color: theme.background }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                   >
                     {isCreating ? 'Create' : 'Save'}
                   </button>
@@ -204,16 +233,18 @@ export default function NotesApp({ onClose }: NotesAppProps) {
                   placeholder="Start typing..."
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full h-full bg-transparent text-white text-base border-none outline-none resize-none font-mono leading-relaxed"
-                  style={{ minHeight: '100%' }}
+                  className="w-full h-full border-none outline-none resize-none font-mono leading-relaxed text-base bg-transparent"
+                  style={{ 
+                    minHeight: '100%',
+                    color: theme.foreground
+                  }}
                 />
               </div>
             </>
           ) : (
             /* Empty State */
-            <div className="flex-1 flex items-center justify-center text-gray-500">
+            <div className="flex-1 flex items-center justify-center" style={{ color: theme.brightBlack }}>
               <div className="text-center">
-                <div className="text-4xl mb-4">→</div>
                 <p className="text-lg">Select a note or create a new one</p>
               </div>
             </div>

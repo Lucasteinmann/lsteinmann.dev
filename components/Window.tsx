@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { useTheme } from './ThemeContext';
 
 interface WindowProps {
   title: string;
   onClose: () => void;
-  children: ReactNode;
+  children: React.ReactNode;
   width?: string;
   height?: string;
 }
@@ -13,28 +14,34 @@ interface WindowProps {
 export default function Window({ 
   title, 
   onClose, 
-  children,
-  width = 'max-w-4xl',
-  height = 'h-[600px]'
+  children, 
+  width = 'max-w-4xl', 
+  height = 'h-[600px]' 
 }: WindowProps) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const { theme } = useTheme();
+  const [position, setPosition] = useState({ x: 50, y: 50 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains('drag-handle')) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      
-      setPosition({
-        x: position.x + deltaX,
-        y: position.y + deltaY
-      });
-      
-      setDragStart({ x: e.clientX, y: e.clientY });
+      if (isDragging) {
+        setPosition({
+          x: e.clientX - dragStart.x,
+          y: e.clientY - dragStart.y
+        });
+      }
     };
 
     const handleMouseUp = () => {
@@ -50,40 +57,50 @@ export default function Window({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragStart, position]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
+  }, [isDragging, dragStart]);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         ref={windowRef}
-        className={`bg-[#0d1117] rounded-lg shadow-2xl w-full ${width} ${height} flex flex-col border border-gray-700 overflow-hidden`}
+        className={`rounded-lg shadow-2xl w-full ${width} ${height} flex flex-col border overflow-hidden`}
         style={{
           transform: `translate(${position.x}px, ${position.y}px)`,
-          cursor: isDragging ? 'grabbing' : 'default'
+          cursor: isDragging ? 'grabbing' : 'default',
+          backgroundColor: theme.background,
+          borderColor: theme.brightBlack
         }}
       >
-        {/* Header - matching terminal style */}
-        <div 
-          className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex justify-between items-center cursor-grab active:cursor-grabbing"
+        <div
+          className="drag-handle px-4 py-2 border-b flex justify-between items-center cursor-grab active:cursor-grabbing"
+          style={{
+            backgroundColor: theme.black,
+            borderColor: theme.brightBlack
+          }}
           onMouseDown={handleMouseDown}
         >
-          <span className="text-gray-400 text-sm font-mono">{title}</span>
-          <button
+          <span className="text-sm font-mono" style={{ color: theme.brightWhite }}>{title}</span>
+          <button 
+            className="w-6 h-6 flex items-center justify-center rounded-full transition-colors"
+            style={{
+              color: theme.brightWhite || '#ffffff'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.red || '#ff0000';
+              e.currentTarget.style.color = theme.background || '#000000';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = theme.brightWhite || '#ffffff';
+            }}
             onClick={onClose}
-            className="text-gray-400 hover:text-white hover:bg-red-500 w-6 h-6 flex items-center justify-center rounded-full transition-colors"
             onMouseDown={(e) => e.stopPropagation()}
           >
             ×
           </button>
         </div>
-
-        {/* Content Area */}
-        <div className="flex-1 bg-[#0d1117] overflow-auto">
+        
+        <div className="flex-1 overflow-hidden">
           {children}
         </div>
       </div>

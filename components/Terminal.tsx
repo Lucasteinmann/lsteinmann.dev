@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import '@xterm/xterm/css/xterm.css';
+import { getTheme, themeNames } from './themes';
+import { useTheme } from './ThemeContext';
 
 interface TerminalProps {
   className?: string;
@@ -10,6 +12,7 @@ interface TerminalProps {
 }
 
 export default function Terminal({ className = '', onClose, onNavigate }: TerminalProps) {
+  const { theme } = useTheme();
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminal = useRef<any>(null);
   const fitAddon = useRef<any>(null);
@@ -19,6 +22,19 @@ export default function Terminal({ className = '', onClose, onNavigate }: Termin
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('guest');
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('terminal-theme') || 'github';
+    }
+    return 'github';
+  });
+
+  // Save theme to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('terminal-theme', currentTheme);
+    }
+  }, [currentTheme]);
 
   // Sync state with refs
   useEffect(() => {
@@ -60,20 +76,30 @@ export default function Terminal({ className = '', onClose, onNavigate }: Termin
         const { Terminal: XTerminal } = await import('@xterm/xterm');
         const { FitAddon: XTermFitAddon } = await import('@xterm/addon-fit');
 
+        const theme = getTheme(currentTheme);
+
         terminal.current = new XTerminal({
           cursorBlink: true,
           theme: {
-            background: '#0d1117',
-            foreground: '#c9d1d9',
-            cursor: '#58a6ff',
-            black: '#21262d',
-            red: '#f85149',
-            green: '#7ee787',
-            yellow: '#f9e2af',
-            blue: '#58a6ff',
-            magenta: '#bc8cff',
-            cyan: '#39c5cf',
-            white: '#b1bac4',
+            background: theme.background,
+            foreground: theme.foreground,
+            cursor: theme.cursor,
+            black: theme.black,
+            red: theme.red,
+            green: theme.green,
+            yellow: theme.yellow,
+            blue: theme.blue,
+            magenta: theme.magenta,
+            cyan: theme.cyan,
+            white: theme.white,
+            brightBlack: theme.brightBlack,
+            brightRed: theme.brightRed,
+            brightGreen: theme.brightGreen,
+            brightYellow: theme.brightYellow,
+            brightBlue: theme.brightBlue,
+            brightMagenta: theme.brightMagenta,
+            brightCyan: theme.brightCyan,
+            brightWhite: theme.brightWhite,
           },
           fontSize: 14,
           fontFamily: 'Fira Code, monospace',
@@ -134,6 +160,7 @@ export default function Terminal({ className = '', onClose, onNavigate }: Termin
               terminal.current?.writeln('');
               terminal.current?.writeln('\x1b[1;35mSystem:\x1b[0m');
               terminal.current?.writeln('  \x1b[1;36mclear\x1b[0m     - Clear terminal');
+              terminal.current?.writeln('  \x1b[1;36mtheme\x1b[0m     - Change terminal theme');
               terminal.current?.writeln('  \x1b[1;36mexit\x1b[0m      - Close terminal');
               terminal.current?.writeln('');
               break;
@@ -196,6 +223,29 @@ export default function Terminal({ className = '', onClose, onNavigate }: Termin
               return false;
             case 'clear':
               terminal.current?.clear();
+              break;
+            case 'theme':
+              const themeName = args[1];
+              if (!themeName) {
+                terminal.current?.writeln('\x1b[1;33mAvailable themes:\x1b[0m');
+                themeNames.forEach(name => {
+                  const indicator = name === currentTheme ? '\x1b[1;32m*\x1b[0m' : ' ';
+                  terminal.current?.writeln(`  ${indicator} \x1b[1;36m${name}\x1b[0m`);
+                });
+                terminal.current?.writeln('');
+                terminal.current?.writeln('Usage: \x1b[1;36mtheme <name>\x1b[0m');
+              } else if (themeNames.includes(themeName)) {
+                setCurrentTheme(themeName);
+                terminal.current?.writeln(`\x1b[1;32mTheme changed to: ${themeName}\x1b[0m`);
+                terminal.current?.writeln('\x1b[1;33mReloading terminal...\x1b[0m');
+                setTimeout(() => {
+                  window.location.reload();
+                }, 500);
+                return false;
+              } else {
+                terminal.current?.writeln(`\x1b[1;31mUnknown theme: ${themeName}\x1b[0m`);
+                terminal.current?.writeln('Available themes: ' + themeNames.join(', '));
+              }
               break;
             case 'neofetch':
               terminal.current?.writeln('\x1b[1;36mluca\x1b[0m@\x1b[1;36mosiris\x1b[0m');
@@ -394,12 +444,33 @@ export default function Terminal({ className = '', onClose, onNavigate }: Termin
   }, [sessionChecked, onClose, onNavigate]);
 
   return (
-    <div className="h-screen w-screen bg-[#0d1117] flex items-center justify-center">
-      <div className="w-full max-w-4xl h-[600px] rounded-lg shadow-2xl overflow-hidden border border-gray-700 bg-[#0d1117]">
-        <div className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex justify-between items-center">
-          <span className="text-gray-400 text-sm font-mono">~/terminal</span>
+    <div className="h-screen w-screen flex items-center justify-center" style={{ backgroundColor: theme.background }}>
+      <div 
+        className="w-full max-w-4xl h-[600px] rounded-lg shadow-2xl overflow-hidden border"
+        style={{ 
+          borderColor: theme.brightBlack,
+          backgroundColor: theme.background 
+        }}
+      >
+        <div 
+          className="px-4 py-2 border-b flex justify-between items-center"
+          style={{ 
+            backgroundColor: theme.black,
+            borderColor: theme.brightBlack 
+          }}
+        >
+          <span className="text-sm font-mono" style={{ color: theme.brightWhite }}>~/terminal</span>
           <button 
-            className="text-gray-400 hover:text-white hover:bg-red-500 w-6 h-6 flex items-center justify-center rounded-full transition-colors"
+            className="w-6 h-6 flex items-center justify-center rounded-full transition-colors"
+            style={{ color: theme.brightWhite }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme.red || '#ff0000';
+              e.currentTarget.style.color = theme.background || '#000000';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = theme.brightWhite || '#ffffff';
+            }}
             onClick={onClose}
           >
             ×
